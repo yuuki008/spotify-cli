@@ -1,0 +1,4 @@
+requests
+spotipy
+pytest
+python-dotenv
