@@ -1,4 +1,5 @@
 from auth import get_spotify_client
+from utils import handle_no_active_device
 
 def get_active_device():
     sp = get_spotify_client()
@@ -24,13 +25,13 @@ def play_track(track_uri):
     sp = get_spotify_client()
     active_device = get_active_device()
     if not active_device:
-        raise Exception("No active device found")
+        handle_no_active_device()
     sp.start_playback(device_id=active_device['id'], uris=[track_uri])
 
 def pause_music():
     sp = get_spotify_client()
     active_device = get_active_device()
     if not active_device:
-        raise Exception("No active device found")
+        handle_no_active_device()
     sp.pause_playback(device_id=active_device['id'])
 
