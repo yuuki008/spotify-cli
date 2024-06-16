@@ -12,6 +12,5 @@ def get_spotify_client():
         redirect_uri=os.getenv("SPOTIPY_REDIRECT_URI"),
         scope="user-modify-playback-state user-read-playback-state"
     ))
-    print(sp.me())
     return sp
 
