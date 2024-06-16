@@ -1,4 +1,3 @@
-
 from auth import get_spotify_client, refresh_token
 from utils import handle_no_active_device
 import spotipy
@@ -16,23 +15,28 @@ class Player:
                 break
         return active_device
 
+    def is_playing(self):
+        playback = self.sp.current_playback()
+        return playback and playback['is_playing']
+
     def play_track(self, track_uri, track_name, artist_name, next_track_name=None, next_artist_name=None):
         active_device = self.get_active_device()
         if not active_device:
             handle_no_active_device()
 
-        # try:
-            # self.sp.pause_playback(device_id=active_device['id'])
-        # except spotipy.exceptions.SpotifyException as e:
-            # if e.http_status == 403:
-            #     self.sp.auth = refresh_token()
-            #     self.sp.pause_playback(device_id=active_device['id'])
+        if self.is_playing():
+            try:
+                self.sp.pause_playback(device_id=active_device['id'])
+            except spotipy.exceptions.SpotifyException as e:
+                if e.http_status == 403:
+                    self.sp.auth_manager.get_access_token(as_dict=False)
+                    self.sp.pause_playback(device_id=active_device['id'])
 
         try:
             self.sp.start_playback(device_id=active_device['id'], uris=[track_uri])
         except spotipy.exceptions.SpotifyException as e:
             if e.http_status == 403:
-                self.sp.auth = refresh_token()
+                self.sp.auth_manager.get_access_token(as_dict=False)
                 self.sp.start_playback(device_id=active_device['id'], uris=[track_uri])
 
         print(f"Playing: {track_name} by {artist_name}")
@@ -44,16 +48,15 @@ class Player:
         if not active_device:
             handle_no_active_device()
 
-        try:
-            self.sp.pause_playback(device_id=active_device['id'])
-        except spotipy.exceptions.SpotifyException as e:
-            if e.http_status == 403:
-                self.sp.auth = refresh_token()
+        if self.is_playing():
+            try:
                 self.sp.pause_playback(device_id=active_device['id'])
-
-    def is_playing(self):
-        playback = self.sp.current_playback()
-        return playback and playback['is_playing']
+            except spotipy.exceptions.SpotifyException as e:
+                if e.http_status == 403:
+                    self.sp.auth_manager.get_access_token(as_dict=False)
+                    self.sp.pause_playback(device_id=active_device['id'])
+        else:
+            print("No track is currently playing.")
 
     def play_next(self, playlist):
         next_track = playlist.get_next_track()
@@ -68,4 +71,32 @@ class Player:
             )
         else:
             print("End of playlist reached.")
+
+    def get_artist_top_tracks(self, artist_id):
+        results = self.sp.artist_top_tracks(artist_id)
+        return results['tracks']
+
+    def get_album_tracks(self, album_id):
+        results = self.sp.album_tracks(album_id)
+        return results['items']
+
+    def get_artist_albums(self, artist_id):
+        results = self.sp.artist_albums(artist_id, album_type='album')
+        return results['items']
+
+    def play_tracks(self, track_uris):
+        active_device = self.get_active_device()
+        if not active_device:
+            handle_no_active_device()
+
+        try:
+            self.sp.start_playback(device_id=active_device['id'], uris=track_uris)
+        except spotipy.exceptions.SpotifyException as e:
+            if e.http_status == 403:
+                self.sp.auth_manager.get_access_token(as_dict=False)
+                self.sp.start_playback(device_id=active_device['id'], uris=track_uris)
+
+    def get_favorite_artists(self):
+        results = self.sp.current_user_top_artists()
+        return results['items']
 
